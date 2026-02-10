@@ -7,11 +7,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Map your local configs folder to the container
-      - ./configs:/app/configs
-      # Map the data file so your cluster list persists
-      - ./data.json:/app/data.json
+      # Mount the FOLDER (Safe) instead of the FILE (Crashy)
+      - ./k8s-data:/app/data
+      - ./k8s-configs:/app/configs
     environment:
-      # Force a default region just in case
       - AWS_DEFAULT_REGION=us-east-1
     restart: unless-stopped

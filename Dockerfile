@@ -24,8 +24,8 @@ RUN curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-au
     && chmod +x aws-iam-authenticator \
     && mv aws-iam-authenticator /usr/local/bin/
 
-# 5. 🛡️ THE MAGIC SHIM (Restored!)
-# This intercepts "aws-vault exec <profile> -- <cmd>" and just runs "<cmd>"
+# 5. THE MAGIC SHIM
+# Ensures "aws-vault exec..." commands work inside Docker
 RUN echo '#!/bin/sh\n\
 if [ "$1" = "exec" ]; then\n\
     shift 3\n\
@@ -33,13 +33,12 @@ fi\n\
 exec "$@"' > /usr/local/bin/aws-vault \
     && chmod +x /usr/local/bin/aws-vault
 
-# 6. App Setup
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+# Create folders so Docker has a place to mount
 RUN mkdir -p configs data && chmod 777 configs data
-RUN touch data.json && chmod 666 data.json
 
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -15,7 +15,19 @@ from botocore.exceptions import ClientError
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-os.makedirs("configs", exist_ok=True)
+# --- ROBUST DATA HANDLING (THE FIX) ---
+DATA_DIR = "data"
+DATA_FILE = os.path.join(DATA_DIR, "data.json")
+CONFIG_DIR = "configs"
+
+# Ensure directories exist on startup
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(CONFIG_DIR, exist_ok=True)
+
+# Ensure data file exists (Prevents Docker crashes)
+if not os.path.exists(DATA_FILE):
+    with open(DATA_FILE, "w") as f:
+        json.dump({"clusters": [], "services": []}, f)
 
 # --- GLOBAL STATE ---
 CACHE = {
@@ -34,14 +46,13 @@ SSO_SESSION = {
 # --- HELPERS ---
 def load_db():
     try:
-        if not os.path.exists("data.json"): return {"clusters": [], "services": []}
-        with open("data.json", "r") as f:
+        with open(DATA_FILE, "r") as f:
             content = f.read()
             return json.loads(content) if content else {"clusters": [], "services": []}
     except: return {"clusters": [], "services": []}
 
 def save_db(data):
-    with open("data.json", "w") as f: json.dump(data, f, indent=4)
+    with open(DATA_FILE, "w") as f: json.dump(data, f, indent=4)
 
 def guess_ui_name(deployment_name: str, existing_names: List[str]) -> str:
     if deployment_name in existing_names: return deployment_name
@@ -58,10 +69,8 @@ def extract_account_id(config_path: str) -> Optional[str]:
     try:
         with open(config_path, 'r') as f:
             content = f.read()
-            # Pattern 1: Standard EKS ARN
             match = re.search(r'arn:aws:eks:[a-z0-9-]+:(\d+):cluster', content)
             if match: return match.group(1)
-            # Pattern 2: IAM Role ARN in user args
             match_role = re.search(r'arn:aws:iam::(\d+):role', content)
             if match_role: return match_role.group(1)
     except: pass
@@ -99,9 +108,6 @@ def get_cluster_credentials(cluster_id: str):
         print(f"❌ Auth Failed: {e}")
         return None
 
-# --- CONTEXT MANAGER ---
-# ... inside main.py ...
-
 class AWSContext:
     def __init__(self, cluster_id: str):
         self.cluster_id = cluster_id
@@ -110,21 +116,13 @@ class AWSContext:
     def __enter__(self):
         creds = get_cluster_credentials(self.cluster_id)
         if creds:
-            # 1. Inject Credentials
             os.environ["AWS_ACCESS_KEY_ID"] = creds["AccessKeyId"]
             os.environ["AWS_SECRET_ACCESS_KEY"] = creds["SecretAccessKey"]
             os.environ["AWS_SESSION_TOKEN"] = creds["SessionToken"]
-            
-            # 2. INJECT REGION (CRITICAL FIX)
-            # We use the region you selected during SSO login
             if SSO_SESSION["region"]:
                 os.environ["AWS_DEFAULT_REGION"] = SSO_SESSION["region"]
                 os.environ["AWS_REGION"] = SSO_SESSION["region"]
-            
-            # 3. Cleanup conflicts
             if "AWS_PROFILE" in os.environ: del os.environ["AWS_PROFILE"]
-            
-            print(f"🔑 Injected keys for cluster {self.cluster_id} (Region: {SSO_SESSION['region']})")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         os.environ.clear()
@@ -169,8 +167,6 @@ async def cluster_detail(request: Request, cluster_id: str):
         "request": request, "cluster": cluster, "services": cluster_services, 
         "last_updated": get_last_updated(), "ts": int(time.time()), "logged_in": is_logged_in
     })
-
-# --- K8S API ---
 
 @app.get("/api/cluster-stats/{cluster_id}")
 def get_cluster_stats(cluster_id: str, response: Response):
@@ -227,7 +223,6 @@ def describe_service(cluster_id: str, ui_name: str, request: Request):
             dep = client.AppsV1Api(api_client=api_client).read_namespaced_deployment(details["deployment"], details["namespace"])
             field = f"involvedObject.name={details['deployment']},involvedObject.namespace={details['namespace']},involvedObject.kind=Deployment"
             events = client.CoreV1Api(api_client=api_client).list_namespaced_event(details["namespace"], field_selector=field).items
-            events = sorted(events, key=lambda x: x.last_timestamp or x.event_time or x.metadata.creation_timestamp, reverse=True)
         return templates.TemplateResponse("describe_modal.html", {"request": request, "dep": dep, "events": events})
     except Exception as e: return f"<div class='alert alert-danger'>{str(e)}</div>"
 
@@ -246,11 +241,8 @@ def scan_namespace(cluster_id: str, namespace: str):
             d_name = dep.metadata.name
             suggested = guess_ui_name(d_name, existing)
             rows += f"""<tr><td class="text-center align-middle"><input type="checkbox" name="selected_deployments" value="{d_name}" checked></td><td class="fw-bold text-primary">{d_name}<input type="hidden" name="deploy_{d_name}" value="{d_name}"></td><td><input type="text" name="ui_name_{d_name}" value="{suggested}" class="form-control form-control-sm"></td></tr>"""
-        
         return HTMLResponse(f"""<form action="/import-bulk" method="post"><input type="hidden" name="cluster_id" value="{cluster_id}"><input type="hidden" name="namespace" value="{namespace}"><div class="table-responsive mb-3" style="max-height:400px;overflow-y:auto;"><table class="table table-sm table-hover border"><thead class="table-light sticky-top"><tr><th>Import</th><th>Deployment</th><th>UI Name</th></tr></thead><tbody>{rows}</tbody></table></div><div class="text-end"><button type="submit" class="btn btn-success">Confirm Import</button></div></form>""")
     except Exception as e: return HTMLResponse(f"<div class='alert alert-danger'>{str(e)}</div>")
-
-# --- ACTIONS ---
 
 @app.post("/refresh-all")
 async def refresh_all(request: Request):
@@ -261,7 +253,8 @@ async def refresh_all(request: Request):
 
 @app.post("/add-cluster")
 async def add_cluster(alias: str = Form(...), file: UploadFile = File(...)):
-    path = f"configs/{file.filename}"
+    # Save to configs/ folder
+    path = os.path.join(CONFIG_DIR, file.filename)
     with open(path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
     data = load_db()
     data["clusters"].append({"id": alias.lower().replace(" ", "-"), "alias": alias, "config_path": path})
@@ -271,6 +264,11 @@ async def add_cluster(alias: str = Form(...), file: UploadFile = File(...)):
 @app.post("/delete-cluster")
 async def delete_cluster(cluster_id: str = Form(...)):
     data = load_db()
+    # Remove config file (optional, but good for cleanup)
+    cluster = next((c for c in data["clusters"] if c["id"] == cluster_id), None)
+    if cluster and os.path.exists(cluster["config_path"]):
+        os.remove(cluster["config_path"])
+    
     data["clusters"] = [c for c in data["clusters"] if c["id"] != cluster_id]
     save_db(data)
     return RedirectResponse(url="/", status_code=303)
@@ -303,7 +301,6 @@ async def unmap_service(cluster_id: str = Form(...), ui_name: str = Form(...)):
     return RedirectResponse(url=f"/cluster/{cluster_id}", status_code=303)
 
 # --- AUTH ROUTES ---
-
 @app.post("/auth/sso/start")
 async def start_sso_login(start_url: str = Form(...), region: str = Form(...)):
     try:

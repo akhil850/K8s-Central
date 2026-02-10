@@ -1,0 +1,32 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMvakNDQWVhZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRJek1EZ3dNVEE1TkRnek1Gb1hEVE16TURjeU9UQTVORGd6TUZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBSzJoCnFBVEkzSWxjUFlCdFpqN0hnclViTVdiS3Z6UlVBa0wrU2lBb0QyczAwUzhweU52a1NsNEhtVERDc0ZWRjhmbVEKRnU4Mkl3aGxOVGxKTzNKUzJKd3hYSE9BdUJBOVprOVZjbTYyb0xrT3Z3eVNkNlpueUw3Q2hHelFXa0hVZS9NZQovcEZkbFRzc0lkcE9xSXA5ejlwUkRRc1RVd0VNQTY0K0g1RDBaOFk0ZzRLM2VmRVd2U1Z3K0l0d20yVlhtclVaCkt4eVBOYkZtUExyRkJZc1EyamRvUUlJOVRvaWtwb3ZvUDVHTnhxdzY4Nk9FV3JhUXlFQTQyL200S2FlWldlVjAKdURweGdUSVozVlpUWEJYMC9SWitrakNIYUVYRTQ1aHVOQk9RMXk2alFHbEcxd3JPWmpaa0tTYUd0M2hSSy8ragpGVXlmb3NUTTJ4V21JNUp2ZWUwQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZETHlRZUdzcVc3UXZ3N2FCR1liUHhtbEQraDZNQlVHQTFVZEVRUU8KTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBQmxqanJVeU5zQlc4K0pON1hwTApiUXpoazdhNU12cEpBb01kNVA5VTBPKzRXcTh6MUFROEdXM0VabTBGZTZsU1kvTHRUSkljOFIwQ05iekxDTStjCjlRaGk2ZG50aW9UbHdmSitUUHRHaEVmZ2NISDZRWVIrbEFzWkdNL3N6aEpFK3hJT1ZRU3hRSWE0bDlaR2NPdzkKUVN0aThQbGFXYklEUlpoWml2Ym42N3JSc0ZUdVF5T1BBb3JrWDdmUzdESzdPTWpPWjErVWdydEdzYVgycERzcQpybWU4M2h3a1dwV1hiZjhiUVFBbVhqWkl1OUdJTUhIMDc1S0crMS9UYzN5eFZXTXMvOWR2SGZ0TXBFT3IyYUp3ClNiVnNwUkF1WUVXU2JuenVzUUhEKzFLUmRZc1Jqdlk5Qm5UVFE2YTdENVRTcUxhR2Y1OW1RTitQQXRoOXB4SGwKcWtVPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    server: https://2A446144FA605392EE8EE9C631066AC7.gr7.us-east-1.eks.amazonaws.com
+  name: arn:aws:eks:us-east-1:312021620923:cluster/EKS-Staging
+contexts:
+- context:
+    cluster: arn:aws:eks:us-east-1:312021620923:cluster/EKS-Staging
+    namespace: dz-staging
+    user: arn:aws:eks:us-east-1:312021620923:cluster/EKS-Staging
+  name: EKS-Staging
+current-context: EKS-Staging
+kind: Config
+preferences: {}
+users:
+- name: arn:aws:eks:us-east-1:312021620923:cluster/EKS-Staging
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - exec
+      - stage
+      - --
+      - aws-iam-authenticator
+      - token
+      - --cluster-id
+      - EKS-Staging
+      command: aws-vault
+      env: null
+      interactiveMode: IfAvailable
+      provideClusterInfo: false

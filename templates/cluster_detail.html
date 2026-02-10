@@ -19,16 +19,13 @@
         </div>
     </nav>
     <div class="container">
-
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2>{{ cluster.alias }}</h2>
-                <span class="text-muted small">ID: {{ cluster.id }}</span>
+                <h2>{{ cluster.alias }}</h2><span class="text-muted small">ID: {{ cluster.id }}</span>
             </div>
             <div class="d-flex gap-2">
                 <div hx-get="/api/cluster-stats/{{ cluster.id }}?t={{ ts }}" hx-trigger="load" hx-swap="innerHTML"
                     class="bg-white p-2 border rounded">...</div>
-
                 <form action="/delete-cluster" method="post"
                     onsubmit="return confirm('⚠️ Are you sure you want to remove the cluster {{ cluster.alias }}? This cannot be undone.');">
                     <input type="hidden" name="cluster_id" value="{{ cluster.id }}">
@@ -62,28 +59,24 @@
                         </td>
                         <td hx-get="/api/status/{{ cluster.id }}/{{ svc.ui_name }}?t={{ ts }}" hx-trigger="load"
                             hx-swap="outerHTML">...</td>
-
                         <td>
-                            <form action="/unmap-service" method="post"
-                                onsubmit="return confirm('Stop tracking {{ svc.ui_name }} on this cluster?');">
-                                <input type="hidden" name="cluster_id" value="{{ cluster.id }}">
-                                <input type="hidden" name="ui_name" value="{{ svc.ui_name }}">
-                                <button class="btn btn-sm btn-outline-danger">Unmap</button>
+                            <form action="/unmap-service" method="post" onsubmit="return confirm('Stop tracking?');">
+                                <input type="hidden" name="cluster_id" value="{{ cluster.id }}"><input type="hidden"
+                                    name="ui_name" value="{{ svc.ui_name }}"><button
+                                    class="btn btn-sm btn-outline-danger">Unmap</button>
                             </form>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">
-                            No services tracked. Use <strong>Import Namespace</strong> to add some.
-                        </td>
+                        <td colspan="4" class="text-center py-4 text-muted">No services tracked. Use <strong>Import
+                                Namespace</strong>.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
     <div class="modal fade" id="importModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
