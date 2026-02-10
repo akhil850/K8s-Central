@@ -1,65 +1,82 @@
-# K8s-Central
+# K8s-Central ☸️
 
 A lightweight, centralized dashboard for monitoring and managing multiple Kubernetes clusters. K8s-Central provides a unified view of your services across different environments, allowing you to track deployment statuses, image versions, and cluster health in one place.
 
-## Features
+Specifically optimized for **AWS EKS** with built-in **AWS SSO** integration.
 
-- **Multi-Cluster Support**: Manage multiple Kubernetes clusters by uploading their `kubeconfig` files.
-- **Service Monitoring**: Track deployments across clusters with real-time status updates (Ready replicas, Image tags).
-- **Bulk Import**: Quickly map multiple deployments from a specific namespace to your dashboard.
-- **Cluster Insights**: View cluster health, Kubernetes version, and node counts at a glance.
-- **Deep Dive**: Inspect specific deployment details and recent events directly from the dashboard.
-- **Responsive UI**: Built with FastAPI, Jinja2, and HTMX for a smooth, interactive experience.
+## ✨ Features
 
-## Tech Stack
+-   **Multi-Cluster Support**: Manage multiple Kubernetes clusters by uploading their `kubeconfig` files.
+-   **Service Monitoring**: Track deployments across clusters with real-time status updates (Ready replicas, Image tags).
+-   **Bulk Import**: Quickly scan a namespace and map multiple deployments to your dashboard in one click.
+-   **AWS SSO Integration**: Native support for EKS clusters. Log in via AWS SSO to automatically inject temporary credentials for EKS cluster access.
+-   **Deep Dive**: Inspect specific deployment details (YAML-ish view) and recent events directly from the dashboard.
+-   **Real-time Interaction**: Built with **FastAPI**, **Jinja2**, and **HTMX** for a smooth, single-page application feel without heavy JS frameworks.
+-   **Docker Ready**: Includes a pre-configured Dockerfile with `kubectl`, `aws-cli`, and `aws-iam-authenticator` pre-installed.
 
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
-- **Frontend**: [HTMX](https://htmx.org/), [Jinja2 Templates](https://jinja.palletsprojects.com/)
-- **Kubernetes Integration**: [Official Python Client](https://github.com/kubernetes-client/python)
-- **Data Store**: Local `data.json` (File-based DB)
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Python 3.8+
-- One or more Kubernetes clusters with valid `kubeconfig` files.
+-   Python 3.9+ (if running locally)
+-   Docker & Docker Compose (recommended)
+-   One or more Kubernetes clusters with valid `kubeconfig` files.
 
-### Installation
+### Option 1: Using Docker (Recommended)
 
-1.  **Clone the repository**:
+The easiest way to run K8s-Central is using Docker Compose.
+
+1.  **Clone and Start**:
     ```bash
     git clone https://github.com/your-repo/K8s-Central.git
     cd K8s-Central
+    docker-compose up -d
     ```
 
-2.  **Install dependencies**:
+2.  **Access the dashboard**:
+    Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+### Option 2: Local Development
+
+1.  **Install dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Run the application**:
+2.  **Run the application**:
     ```bash
     uvicorn main:app --reload
     ```
 
-4.  **Access the dashboard**:
-    Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+## 🔐 AWS SSO & EKS Support
 
-## Project Structure
+K8s-Central is designed to work seamlessly with EKS clusters using AWS SSO.
 
-- `main.py`: Core FastAPI application and API logic.
-- `templates/`: HTML templates using Jinja2 and HTMX.
-- `configs/`: Directory where uploaded `kubeconfig` files are stored.
-- `data.json`: Persists cluster and service mapping information.
-- `requirements.txt`: Python dependencies.
+1.  Click the **AWS Login** button in the navbar.
+2.  Provide your **SSO Start URL** and **Region**.
+3.  Follow the device authorization flow in your browser.
+4.  Select your **Account** and **Role**.
+5.  The application will now handle temporary credential injection automatically when querying your EKS clusters.
 
-## Usage
+> **Note**: The Docker image includes a "magic shim" for `aws-vault`. If your `kubeconfig` uses `aws-vault exec`, the container will automatically bypass it and use the SSO credentials injected by the app.
 
-1.  **Add a Cluster**: Go to "Add Cluster", provide an alias, and upload your `kubeconfig` file.
-2.  **Map Services**: Within a cluster view, you can manually add service mappings or use the **Scan Namespace** feature to bulk-import deployments.
-3.  **Monitor**: The main dashboard displays a matrix of your services across all registered clusters.
+## 📂 Project Structure
 
-## License
+-   `main.py`: Core FastAPI application and API logic.
+-   `templates/`: HTMX-powered HTML templates.
+-   `configs/`: Directory where uploaded `kubeconfig` files are stored (Persistent volume in Docker).
+-   `data.json`: Persists cluster and service mapping information (Persistent volume in Docker).
+-   `Dockerfile`: Multi-tool container with `aws`, `kubectl`, and `aws-iam-authenticator`.
+
+## 🛠 Usage
+
+1.  **Add a Cluster**: Go to "Add Cluster", provide an alias, and upload your `kubeconfig`.
+2.  **Map Services**: 
+    -   Click on a Cluster.
+    -   Enter a namespace and click **Scan Namespace**.
+    -   Select the deployments you want to track and click **Confirm Import**.
+3.  **Monitor**: The main dashboard displays a matrix of your services. Click any status badge to see live Events and Deployment details.
+
+## 📝 License
 
 MIT
