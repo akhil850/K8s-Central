@@ -1,0 +1,133 @@
+<div class="modal fade" id="describeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+
+            <div class="modal-header bg-dark text-white">
+                <div>
+                    <h5 class="modal-title fw-bold">{{ dep.metadata.name }}</h5>
+                    <span class="badge bg-secondary font-monospace">{{ dep.metadata.namespace }}</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body font-monospace" style="font-size: 0.9em;">
+
+                <div class="mb-4">
+                    <h6 class="border-bottom pb-2 mb-3 text-secondary text-uppercase small fw-bold">Summary</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <small class="text-muted d-block">Created</small>
+                            {{ dep.metadata.creation_timestamp }}
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted d-block">Replicas</small>
+                            <span class="text-success fw-bold">{{ dep.status.ready_replicas }}</span> / {{
+                            dep.spec.replicas }}
+                        </div>
+                        <div class="col-12 mt-3">
+                            <small class="text-muted d-block">Strategy</small>
+                            {{ dep.spec.strategy.type }}
+                            {% if dep.spec.strategy.rolling_update %}
+                            (MaxUnavail: {{ dep.spec.strategy.rolling_update.max_unavailable }})
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="border-bottom pb-2 mb-3 text-secondary text-uppercase small fw-bold">Configuration</h6>
+
+                    {% for c in dep.spec.template.spec.containers %}
+                    <div class="card mb-3 border-0 bg-light">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-primary">{{ c.name }}</span>
+                                <span class="badge bg-white text-dark border">{{ c.image }}</span>
+                            </div>
+
+                            {% if c.ports %}
+                            <div class="mb-2">
+                                <small class="text-muted">Ports:</small>
+                                {% for p in c.ports %}
+                                <span class="badge bg-secondary">{{ p.container_port }}/{{ p.protocol }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if c.env %}
+                            <div class="mt-2">
+                                <small class="text-muted d-block mb-1">Environment Variables:</small>
+                                <div class="bg-white p-2 rounded border" style="max-height: 200px; overflow-y: auto;">
+                                    <table class="table table-sm table-borderless mb-0 small">
+                                        <tbody>
+                                            {% for e in c.env %}
+                                            <tr>
+                                                <td class="text-primary pe-3" style="width: 30%;">{{ e.name }}</td>
+                                                <td class="text-break">
+                                                    {% if e.value %}
+                                                    {{ e.value }}
+                                                    {% elif e.value_from %}
+                                                    <span class="text-muted fst-italic">Ref: {{
+                                                        e.value_from.config_map_key_ref.name or
+                                                        e.value_from.secret_key_ref.name }}</span>
+                                                    {% else %}
+                                                    -
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-muted small fst-italic">No explicit environment variables set.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <h6 class="border-bottom pb-2 mb-3 text-secondary text-uppercase small fw-bold">Recent Events</h6>
+                    {% if events %}
+                    <table class="table table-sm table-striped small">
+                        <thead>
+                            <tr class="text-muted">
+                                <th style="width: 15%">Type</th>
+                                <th style="width: 25%">Reason</th>
+                                <th>Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for e in events %}
+                            <tr>
+                                <td>
+                                    {% if e.type == 'Warning' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger">Warning</span>
+                                    {% else %}
+                                    <span class="badge bg-success bg-opacity-10 text-success">Normal</span>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-bold">{{ e.reason }}</td>
+                                <td>{{ e.message }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="p-3 text-center text-muted border rounded bg-light">
+                        No events found in the last hour.
+                    </div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div class="modal-footer bg-light py-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
