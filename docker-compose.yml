@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  k8s-central:
+    build: .
+    container_name: k8s-central
+    ports:
+      - "8000:8000"
+    volumes:
+      # Map your local configs folder to the container
+      - ./configs:/app/configs
+      # Map the data file so your cluster list persists
+      - ./data.json:/app/data.json
+    environment:
+      # Force a default region just in case
+      - AWS_DEFAULT_REGION=us-east-1
+    restart: unless-stopped
