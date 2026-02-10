@@ -3,4 +3,5 @@ uvicorn
 jinja2
 python-multipart
 kubernetes
-httpx
+boto3
+requests
